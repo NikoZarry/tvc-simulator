@@ -1,6 +1,6 @@
 # Thrust Curve constants (AeroTech J350W)
-MOTOR_MASS = 0.665    # kg, mass of the motor
 PROP_MASS = 0.375     # kg, mass of the propellant
+MOTOR_MASS = 0.665    # kg, mass of the motor (including propellant)
 BURN_TIME = 1.5       # s, time it takes to use all the propellant
 AVG_THRUST = 445      # N, average thrust throughout ascent
 
@@ -9,6 +9,7 @@ DRY_ROCKET_MASS = 4   # kg, PLACEHOLDER: airframe + recovery + payload, no motor
 
 # Derived constants
 INITIAL_MASS = DRY_ROCKET_MASS + MOTOR_MASS   # kg, mass of the entire rocket at liftoff
+FINAL_MASS = (DRY_ROCKET_MASS + MOTOR_MASS) - PROP_MASS
 BURN_RATE = PROP_MASS / BURN_TIME             # kg/s, rate at which propellant is expelled
 
 # Simulation / environment constants
