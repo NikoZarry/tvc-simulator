@@ -1,11 +1,10 @@
 """
-Add basic physics engine:
--add euler integration for vel, accel, and height
+Add basic rocket physics loop:
+-add variable mass, force, and acceleration
+-add thrust cut off once propellant is depleted
 
 ASSUMPTIONS:
--constant mass
 -constant thrust
--no thrust cut-off
 -no drag
 """
 
@@ -25,45 +24,58 @@ state_list = []             # will be used to store a "snapshot" of the rocket's
                             # at each interval "dt"
 
 # Functions
-def forceCalculation():                                                 # place holder function until variable force 
-                                                                        # is introducted in a later commit
+def massCalculation(mass):                    # Decreases mass due to propellant being expelled
+    return mass - (c.BURN_RATE * c.DT)        # mass - (rate propellant gets expelled per increment time)
 
-  return c.AVG_THRUST + (c.INITIAL_MASS * c.GRAVITY)                    # net_force = thrust + weight, no drag yet
+def forceCalculation(mass, time):               # Calculates net forces affecting the rocket
+  if time <= c.BURN_TIME:                       
+    return c.AVG_THRUST + (mass * c.GRAVITY)    # Whilst there's propellant to burn, force is equal to
+  else:                                         # Thrust + (Force due to gravity)
+    return mass * c.GRAVITY                     # When propellant is out, only force is gravity (drag will be added in a later commit)
 
-def accelCalculation(force):
-  return force / c.INITIAL_MASS                                         # net_accel = force / mass
+def accelCalculation(mass, force):                                      # Calculates acceleration due to net forces (F=ma)
+  return force / mass                                                   # a = F/m
 
-def velCalculation(velocity, acceleration):
-  return velocity + (acceleration * c.DT)                               # final_vel = vel + (accel * dt)
+def velCalculation(velocity, acceleration):          # Calculates velocity due to acceleration
+  return velocity + (acceleration * c.DT)            # final_vel = vel + (accel * dt)
 
-def heightCalculation(height, velocity, acceleration):
-  return height + velocity * c.DT + (1/2) * acceleration * (c.DT ** 2)  # h = v*dt + (1/2)*a*dt^2
+def heightCalculation(height, velocity, acceleration):                   # Calculates height due to velocity
+  return height + velocity * c.DT + (1/2) * acceleration * (c.DT ** 2)   # h = v*dt + (1/2)*a*dt^2
 
-
-def step(state):
+def step(state):                        # "step" function that runs every time step (0.01 s)
   
   # Declaring variables
-  height = state["height"]              # Retrieves height, mass, etc. from the rocket's state dictionary
-  mass = state["mass"]                  # mass and acceleration until later commit
+  height = state["height"]              # Retrieves starting height, mass, etc. from the rocket's state dictionary
+  mass = state["mass"]                   
   velocity = state["velocity"]
   time = state["sim_time"]
 
-  net_force = forceCalculation()
-  net_acceleration = accelCalculation(net_force)
+  if time <= c.BURN_TIME:                               # If there's still propellant burning, update mass
+    state["mass"] = massCalculation(state["mass"])      # If propllenat is out, mass stays constant
+    mass = state["mass"]
+
+  net_force = forceCalculation(mass, time)
+  net_acceleration = accelCalculation(mass, net_force)
   final_velocity = velCalculation(velocity, net_acceleration)
   final_height = heightCalculation(height, final_velocity, net_acceleration)
   
-  state_list.append(state.copy())                     # adds the rocket's previous state to the "state_list" list
+  state_list.append(state.copy())                     # adds a copy of the rocket's previous state to the "state_list" list
   
   state["height"] = final_height                      # Updates rocket's state dictionary 
   state["velocity"] = final_velocity
   state["acceleration"] = net_acceleration
   state["sim_time"] = time + c.DT                     # increments time by dt (0.01 s)
 
-step(rocket_state)                                    # 
-                                                      # will be utilized in the next 
-
-while rocket_state["sim_time"] <= 10:                 # keeps the rocket flying until time has reached 10 seconds
+step(rocket_state)                                    # Runs a quick step in order to make the rocket's height non-zero
+                                                      # Since the condition below runs whilst the rocket is airborne
+while rocket_state["height"] >= 0:                    # Keeps incrementing time until the rocket reaches the ground
   step(rocket_state)                    
 
-print(f"Final height: {rocket_state["height"]:.3f} m")  # small confirmation print-out, will be vastly expanded in a later commit
+
+# PRINT OUT
+print(f"\nFinal height: {rocket_state["height"]:.3f} m")  
+print(f"\nFinal vertical veloctiy : {rocket_state["velocity"]:.3f} m/s")
+print(f"\nFinal vertical acceleration: {rocket_state["acceleration"]:.3f} m/s^2")
+print(f"\nFinal rocket mass: {rocket_state["mass"]:.3f} kg")
+print(f"\nTheoretical final rocket mass: {c.FINAL_MASS:.3f} kg")
+print(f"\nFinal sim_time: {rocket_state["sim_time"]:.3f} s")
