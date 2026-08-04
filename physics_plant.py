@@ -74,29 +74,30 @@ while rocket_state["height"] >= 0:        # Keeps incrementing time until the ro
   step(rocket_state)                    
 
 # Interpolated final state
-def interpolation(x0, x1, alpha):
-  return x0 + alpha * (x1 - x0)
+def interpolation(x0, x1, alpha):              # Blends between two values using alpha as the fraction between them
+  return x0 + alpha * (x1 - x0)                 # x = x0 + alpha * (x1 - x0), general linear interpolation
 
 
-def final_state():
-  state0 = state_list[-2]
-  state1 = state_list[-1]
+def final_state():                                                            # Corrects the overshot landing state using linear interpolation
 
-  alpha = (0 - state0["height"]) / (state1["height"] - state0["height"])
-  rocket_state["height"] = 0
+  state0 = state_list[-2]                                                     # Last logged state still at or above ground (before the crossing)
+  state1 = state_list[-1]                                                     # First logged state that overshot below ground (after the crossing)
 
-  final_time = interpolation(state0["sim_time"], state1["sim_time"], alpha)
+  alpha = (0 - state0["height"]) / (state1["height"] - state0["height"])      # Fraction of the timestep where height actually crossed 0
+  rocket_state["height"] = 0                                                  # True landing height, exactly ground level
+
+  final_time = interpolation(state0["sim_time"], state1["sim_time"], alpha)   # Interpolated sim_time at the true moment of landing
   rocket_state["sim_time"] = final_time
 
-  final_velocity = interpolation(state0["velocity"], state1["velocity"], alpha)
+  final_velocity = interpolation(state0["velocity"], state1["velocity"], alpha)       # Interpolated velocity at the true moment of landing
   rocket_state["velocity"] = final_velocity
   
-  final_accel = interpolation(state0["acceleration"], state1["acceleration"], alpha)
+  final_accel = interpolation(state0["acceleration"], state1["acceleration"], alpha)  # Interpolated acceleration at the true moment of landing
   rocket_state["acceleration"] = final_accel
 
 
 
-final_state()
+final_state()                                    # Runs the interpolation, replaces rocket_state's overshot values with the true landing state
 
 # PRINT OUT
 print(f"\nFinal height: {rocket_state["height"]:.3f} m")  
