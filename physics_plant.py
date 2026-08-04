@@ -1,11 +1,12 @@
 """
-Add basic rocket physics loop:
--add variable mass, force, and acceleration
--add thrust cut off once propellant is depleted
+Add basic rocket physics loop (cont):
+- add linear interpolation
+- add more accurate final state
+- add drag
 
 ASSUMPTIONS:
 -constant thrust
--no drag
+-
 """
 
 # Imports
@@ -58,19 +59,44 @@ def step(state):                        # "step" function that runs every time s
   net_acceleration = accelCalculation(mass, net_force)
   final_velocity = velCalculation(velocity, net_acceleration)
   final_height = heightCalculation(height, final_velocity, net_acceleration)
-  
-  state_list.append(state.copy())                     # adds a copy of the rocket's previous state to the "state_list" list
-  
-  state["height"] = final_height                      # Updates rocket's state dictionary 
-  state["velocity"] = final_velocity
-  state["acceleration"] = net_acceleration
-  state["sim_time"] = time + c.DT                     # increments time by dt (0.01 s)
 
-step(rocket_state)                                    # Runs a quick step in order to make the rocket's height non-zero
-                                                      # Since the condition below runs whilst the rocket is airborne
-while rocket_state["height"] >= 0:                    # Keeps incrementing time until the rocket reaches the ground
+  state["height"] = final_height                    # Updates rocket's state dictionary 
+  state["velocity"] = final_velocity
+  state["acceleration"] = net_acceleration          
+  state["sim_time"] = time + c.DT                   # increments time by dt (0.01 s)
+
+  state_list.append(state.copy())                   # adds a copy of the rocket's previous state to the "state_list" list
+
+
+step(rocket_state)                        # Runs a quick step in order to make the rocket's height non-zero
+                                          # Since the condition below runs whilst the rocket is airborne
+while rocket_state["height"] >= 0:        # Keeps incrementing time until the rocket reaches the ground
   step(rocket_state)                    
 
+# Interpolated final state
+def interpolation(x0, x1, alpha):
+  return x0 + alpha * (x1 - x0)
+
+
+def final_state():
+  state0 = state_list[-2]
+  state1 = state_list[-1]
+
+  alpha = (0 - state0["height"]) / (state1["height"] - state0["height"])
+  rocket_state["height"] = 0
+
+  final_time = interpolation(state0["sim_time"], state1["sim_time"], alpha)
+  rocket_state["sim_time"] = final_time
+
+  final_velocity = interpolation(state0["velocity"], state1["velocity"], alpha)
+  rocket_state["velocity"] = final_velocity
+  
+  final_accel = interpolation(state0["acceleration"], state1["acceleration"], alpha)
+  rocket_state["acceleration"] = final_accel
+
+
+
+final_state()
 
 # PRINT OUT
 print(f"\nFinal height: {rocket_state["height"]:.3f} m")  
