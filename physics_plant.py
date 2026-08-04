@@ -1,12 +1,10 @@
 """
-Add basic rocket physics loop (cont):
-- add linear interpolation
-- add more accurate final state
-- add drag
+Add intermediate rocket physics loop:
+- add air drag
+- add better print out
 
 ASSUMPTIONS:
--constant thrust
--
+-constant average thrust
 """
 
 # Imports
@@ -28,11 +26,18 @@ state_list = []             # will be used to store a "snapshot" of the rocket's
 def massCalculation(mass):                    # Decreases mass due to propellant being expelled
     return mass - (c.BURN_RATE * c.DT)        # mass - (rate propellant gets expelled per increment time)
 
-def forceCalculation(mass, time):               # Calculates net forces affecting the rocket
+def dragCalculation(velocity):    # Calculates air drag acting on the rocket
+  drag = 0.5 * c.AIR_DENSITY * (velocity ** 2) * c.DRAG_COEFFICIENT * c.CROSS_SECTION_AREA
+  if velocity >= 0:    # If the rocket moving upward, drag is pushing down
+    return -drag
+  else:                # If the rocket is falling downward, drag is pushing up
+    return drag
+
+def forceCalculation(mass, drag, time):                # Calculates net forces affecting the rocket
   if time <= c.BURN_TIME:                       
-    return c.AVG_THRUST + (mass * c.GRAVITY)    # Whilst there's propellant to burn, force is equal to
-  else:                                         # Thrust + (Force due to gravity)
-    return mass * c.GRAVITY                     # When propellant is out, only force is gravity (drag will be added in a later commit)
+    return c.AVG_THRUST + (mass * c.GRAVITY) + drag    # Whilst there's propellant to burn, force is equal to
+  else:                                                # Thrust + (Force due to gravity)
+    return (mass * c.GRAVITY) + drag                   # When propellant is out, only force is gravity (drag will be added in a later commit)
 
 def accelCalculation(mass, force):                                      # Calculates acceleration due to net forces (F=ma)
   return force / mass                                                   # a = F/m
@@ -55,7 +60,8 @@ def step(state):                        # "step" function that runs every time s
     state["mass"] = massCalculation(state["mass"])      # If propllenat is out, mass stays constant
     mass = state["mass"]
 
-  net_force = forceCalculation(mass, time)
+  air_drag = dragCalculation(velocity)
+  net_force = forceCalculation(mass, air_drag, time)
   net_acceleration = accelCalculation(mass, net_force)
   final_velocity = velCalculation(velocity, net_acceleration)
   final_height = heightCalculation(height, final_velocity, net_acceleration)
