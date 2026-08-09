@@ -106,7 +106,7 @@ while rocket_state["height"] >= 0:        # Keeps incrementing time until the ro
   if round(rocket_state["sim_time"], 2) == c.BURN_TIME:
     print("--------------------------------- BURN OUT (PROPELLANT HAS BEEN DEPLETED) ---------------------------------")
 
-  if round(rocket_state["velocity"], 2) == 0:
+  if state_list[-2]["velocity"] > 0 and state_list[-1]["velocity"] < 0: 
     print("------------------------------------------ DESCENT (VELOCITY < 0) ------------------------------------------")
 
 
