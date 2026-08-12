@@ -26,6 +26,7 @@ INITIAL_MASS = DRY_ROCKET_MASS + MOTOR_MASS                 # kg, mass of the en
 FINAL_MASS = INITIAL_MASS - PROP_MASS                       # kg, final mass of the rocket, when all propellant is depleted
 BURN_RATE = PROP_MASS / BURN_TIME                           # kg/s, rate at which propellant is expelled
 CROSS_SECTION_AREA = PI * (DIAMETER / 2) ** 2               # m^2, cross-sectional area of the rocket's circular body
+LEG_DISTANCE = LENGTH / 2                                   # m, distance from pivot to torque application
 
 # Assuming uniform mass density, constant mass, and cylindrical throughout entire rocket
 MOMENT_OF_INERTIA = (1/12) * INITIAL_MASS * (LENGTH ** 2)   # kg*m^2, rocket's resistance to being rotated
