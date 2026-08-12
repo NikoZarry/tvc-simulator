@@ -1,9 +1,7 @@
 """
-Add intermediate rocket physics loop:
-- add better print out
-
-ASSUMPTIONS:
--constant average thrust
+Phase 2:
+Add rotational mechanics
+- add beginning parameters
 """
 
 # Imports
@@ -11,12 +9,16 @@ import constants as c   # Imported from constants.py
 import math
 
 
-rocket_state = {            # rocket's starting parameters 
-  "height": 0,              # m, rocket is at the ground
-  "mass": c.INITIAL_MASS,   # kg, rocket's starting mass
-  "velocity": 0,            # m/s, rocket is at rest
-  "acceleration": 0,        # m/s^2, rocket isn't accelerating yet
-  "sim_time": 0             # s, timer hasn't started yet
+rocket_state = {              # rocket's starting parameters 
+  "height": 0,                # m, how far the rocket has ascended
+  "mass": c.INITIAL_MASS,     # kg, how much mass the rocket contains
+  "velocity": 0,              # m/s, how quickly the rocket is ascending
+  "acceleration": 0,          # m/s^2, how quickly the rocket's velocity is changing
+  "sim_time": 0,              # s, total elapsed time from start of rocket's ascent
+  "pitch": 0,                 # degrees, how far the rocket's body axis has rotated off the vertical
+  "angular_velocity": 0,      # degrees/s, how fast a rocket's body axis is rotating off the vertical
+  "angular_acceleration": 0,  # degrees/s^2, how fast a rocket's angular velocity is changing
+
 }
 
 state_list = []                      # will be used to store a "snapshot" of the rocket's state
@@ -35,28 +37,46 @@ def dragCalculation(velocity):    # Calculates air drag acting on the rocket
     return -drag
   else:                # If the rocket is falling downward, drag is pushing up
     return drag
-
+  
 def forceCalculation(mass, drag, time):                # Calculates net forces affecting the rocket
-  if time <= c.BURN_TIME:                       
-    return c.AVG_THRUST + (mass * c.GRAVITY) + drag    # Whilst there's propellant to burn, force is equal to
-  else:                                                # Thrust + (Force due to gravity)
-    return (mass * c.GRAVITY) + drag                   # When propellant is out, only forces acting are gravity and drag
+  if time <= c.BURN_TIME:      
+    translational_thrust = c.AVG_THRUST * math.cos(math.radians(c.DELTA))   # Thrust applied to moving the rocket upward           
+    return translational_thrust + (mass * c.GRAVITY) + drag    # Whilst there's propellant to burn, force is equal to
+  else:                                                        # Thrust + (Force due to gravity)
+    return (mass * c.GRAVITY) + drag                           # When propellant is out, only forces acting are gravity and drag
 
-def accelCalculation(mass, force):                                      # Calculates acceleration due to net forces (F=ma)
-  return force / mass                                                   # a = F/m
+def torqueCalculation(time):                               # Calculates net torque acting on the rocket's center of mass
+  if time <= c.BURN_TIME:
+    return c.AVG_THRUST * c.LEG_DISTANCE * math.sin(math.radians(c.DELTA))    # torque = Tdsin(delta)
+  else:
+    return 0                                               # If burnout has passed, return zero torque
+
+def accelCalculation(mass, force):          # Calculates acceleration due to net forces (F=ma)
+  return force / mass                       # a = F/m
+
+def angAccelCalculation(torque):         # Calculates angular acceleration due to net torque (torque=I*alpha)
+  return torque / c.MOMENT_OF_INERTIA    # alpha = torque / I
 
 def velCalculation(velocity, acceleration):          # Calculates velocity due to acceleration
   return velocity + (acceleration * c.DT)            # final_vel = vel + (accel * dt)
 
+def angVelCalculation(ang_velocity, ang_acceleration):   # Calculates angular velocity due to angular acceleration
+  return ang_velocity + (ang_acceleration * c.DT)        # final_angvel = angvel + (angaccel * dt)
+
 def heightCalculation(height, velocity, acceleration):                   # Calculates height due to velocity
   return height + velocity * c.DT + (1/2) * acceleration * (c.DT ** 2)   # h = v*dt + (1/2)*a*dt^2
+
+def pitchCalculation(pitch, angular_velocity, angular_acceleration):                    # Calculates pitch angle due to angular velocity
+  return pitch + angular_velocity * c.DT + (1/2) * angular_acceleration * (c.DT ** 2)   # pitch = omega*dt + (1/2)*alpha*dt^2
 
 def step(state):                        # "step" function that runs every time step (0.01 s)
   
   # Declaring variables
-  height = state["height"]              # Retrieves starting height, mass, etc. from the rocket's state dictionary
+  height = state["height"]              # Retrieves starting translational and rotational values from the rocket's state dictionary
+  pitch = state["pitch"]
   mass = state["mass"]                   
   velocity = state["velocity"]
+  angular_velocity = state["angular_velocity"]
   time = state["sim_time"]
 
   if time <= c.BURN_TIME:                               # If there's still propellant burning, update mass
@@ -65,13 +85,20 @@ def step(state):                        # "step" function that runs every time s
 
   air_drag = dragCalculation(velocity)
   net_force = forceCalculation(mass, air_drag, time)
+  net_torque = torqueCalculation(time)
   net_acceleration = accelCalculation(mass, net_force)
+  net_angular_acceleration = angAccelCalculation(net_torque)
   final_velocity = velCalculation(velocity, net_acceleration)
+  final_angular_velocity = angVelCalculation(angular_velocity, net_angular_acceleration)
   final_height = heightCalculation(height, final_velocity, net_acceleration)
+  final_pitch = pitchCalculation(pitch, final_angular_velocity, net_angular_acceleration)
 
   state["height"] = final_height                    # Updates rocket's state dictionary 
+  state["pitch"] = final_pitch
   state["velocity"] = final_velocity
+  state["angular_velocity"] = final_angular_velocity
   state["acceleration"] = net_acceleration          
+  state["angular_acceleration"] = net_angular_acceleration
   state["sim_time"] = time + c.DT                   # increments time by dt (0.01 s)
   
   global step_count
@@ -80,16 +107,24 @@ def step(state):                        # "step" function that runs every time s
   state_list.append(state.copy())                   # adds a copy of the rocket's previous state to the "state_list" list
 
 
-def print_out():                                    # Prints out a line displaying height, velocity, accel, and elapsed time 
+def print_out():                                    # Prints out a line displaying relevant translational and rotational values
   height = rocket_state["height"]
+  pitch = math.degrees(rocket_state["pitch"])
   velocity = rocket_state["velocity"]
+  angular_vel = math.degrees(rocket_state["angular_velocity"])
   accel = rocket_state["acceleration"]
+  angular_accel = math.degrees(rocket_state["angular_acceleration"])
   time = rocket_state["sim_time"]
 
+  print(f"time elapsed = {time:>4.1f} s", end="  |  ")
   print(f"height = {height:>8.3f} m", end="  |  ")
-  print(f"velocity = {velocity:>8.3f} m/s", end="  |  ")
-  print(f"acceleration = {accel:>8.3f} m/s^2", end="  |  ")
-  print(f"time elapsed = {time:>4.1f} s")
+  print(f"velocity = {velocity:>10.3f} m/s", end="  |  ")
+  print(f"acceleration = {accel:>12.3f} m/s^2")
+  print(f"", end="\t\t\t")
+  print(f"  pitch = {pitch:>9.3f} °", end="  |  ")
+  print(f"ang velocity = {angular_vel:>3.3f} °/s", end="  |  ")
+  print(f"ang acceleration = {angular_accel:>8.3f} °/s^2")
+  print("")
 
 print("--------------------------------------- POWERED FLIGHT (BURN PHASE) ---------------------------------------")
 
@@ -132,17 +167,30 @@ def final_state():                                                              
   final_accel = interpolation(state0["acceleration"], state1["acceleration"], alpha)  # Interpolated acceleration at the true moment of landing
   rocket_state["acceleration"] = final_accel
 
+  final_pitch = interpolation(state0["pitch"], state1["pitch"], alpha)                # Interpolated pitch at the true moment of landing
+  rocket_state["pitch"] = final_pitch
+
+  final_angVel = interpolation(state0["angular_velocity"], state1["angular_velocity"], alpha)            # Interpolated angular velocity at the true moment of landing
+  rocket_state["angular_velocity"] = final_angVel
+
+  final_angAccel = interpolation(state0["angular_acceleration"], state1["angular_acceleration"], alpha)  # Interpolated angular accel at the true moment of landing
+  rocket_state["angular_acceleration"] = final_angAccel
+
   print("------------------------------------------- LANDING (HEIGHT = 0) -------------------------------------------")
+  print(f"time elapsed = {rocket_state["sim_time"]:>4.1f} s", end="  |  ")
   print(f"height = {rocket_state["height"]:>8.3f} m", end="  |  ")
-  print(f"velocity = {rocket_state["velocity"]:>8.3f} m/s", end="  |  ")
-  print(f"acceleration = {rocket_state["acceleration"]:>8.3f} m/s^2", end="  |  ")
-  print(f"time elapsed = {rocket_state["sim_time"]:>4.1f} s")
+  print(f"velocity = {rocket_state["velocity"]:>10.3f} m/s", end="  |  ")
+  print(f"acceleration = {rocket_state["acceleration"]:>12.3f} m/s^2")
+  print(f"", end="\t\t\t")
+  print(f"  pitch = {math.degrees(rocket_state["pitch"]):>9.3f} °", end="  |  ")
+  print(f"ang velocity = {math.degrees(rocket_state["angular_velocity"]):>3.3f} °/s", end="  |  ")
+  print(f"ang acceleration = {math.degrees(rocket_state["angular_acceleration"]):>8.3f} °/s^2")
   print("------------------------------------------------------------------------------------------------------------")
 
 
 apogee_state = max(state_list, key = lambda entry: entry["height"])                             # Rocket state where max height was achieved
 maxv_state = max(state_list, key = lambda entry: entry["velocity"])                             # Rocket state where max velocity was achieved
-maxa_state = max(state_list, key = lambda entry: entry["acceleration"])                         # Rocket state where max acceleration was achieved
+maxa_state = max(state_list, key = lambda entry: abs(entry["acceleration"]))                    # Rocket state where max acceleration was achieved
 burnout_list = [entry for entry in state_list if round(entry["sim_time"], 2) == c.BURN_TIME]    # A list of rocket states where elapsed time is = burnout time (just one state)
 burnout_state = burnout_list[0]                                                                 # Rocket state where the propellant was completely depleted
 
