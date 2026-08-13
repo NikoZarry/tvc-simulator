@@ -5,13 +5,15 @@ Phase 3: PID Implementation
 """
 
 # Imports
-import physics_plant as ph
-import constants as c
 import math
+
+import constants as c
+import physics_plant as ph
 
 rocket_state = ph.rocket_state
 state_list = ph.state_list
 step = ph.step
+print_interval = ph.print_interval
 steps_per_second = ph.steps_per_second
 
 def print_out():                                    # Prints out a line displaying relevant translational and rotational values
@@ -27,11 +29,11 @@ def print_out():                                    # Prints out a line displayi
   print(f"height = {height:>8.3f} m", end="  |  ")
   print(f"velocity = {velocity:>12.3f} m/s", end="  |  ")
   print(f"acceleration = {accel:>12.3f} m/s^2")
-  print(f"", end="\t\t\t")
+  print(end="\t\t\t")
   print(f"  pitch = {pitch:>10.3f}°", end="  |  ")
   print(f"ang velocity = {angular_vel:>3.3f} °/s", end="  |  ")
   print(f"ang acceleration = {angular_accel:>8.3f} °/s^2")
-  print("")
+  print()
 
 print("------------------------------------------- POWERED FLIGHT (BURN PHASE) -------------------------------------------\n")
 
@@ -39,6 +41,10 @@ step(rocket_state)                        # Runs a quick step in order to make t
                                           # Since the condition below runs whilst the rocket is airborne
 
 while rocket_state["height"] >= 0:        # Keeps incrementing time until the rocket reaches the ground
+
+  if rocket_state["sim_time"] >= c.BURN_TIME:
+    print_interval = 0.5
+    steps_per_second = round(print_interval / c.DT)
 
   step(rocket_state)
 
@@ -88,7 +94,7 @@ def final_state():                                                              
   print(f"height = {rocket_state["height"]:>8.3f} m", end="  |  ")
   print(f"velocity = {rocket_state["velocity"]:>12.3f} m/s", end="  |  ")
   print(f"acceleration = {rocket_state["acceleration"]:>12.3f} m/s^2")
-  print(f"", end="\t\t\t")
+  print(end="\t\t\t")
   print(f"  pitch = {math.degrees(rocket_state["pitch"]):>10.3f}°", end="  |  ")
   print(f"ang velocity = {math.degrees(rocket_state["angular_velocity"]):>3.3f} °/s", end="  |  ")
   print(f"ang acceleration = {math.degrees(rocket_state["angular_acceleration"]):>8.3f} °/s^2")

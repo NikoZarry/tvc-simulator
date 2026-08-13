@@ -4,9 +4,9 @@ Phase 3: PID Implementation
 """
 
 # Imports
-import constants as c   # Imported from constants.py
 import math
 
+import constants as c  # Imported from constants.py
 
 rocket_state = {              # rocket's starting parameters
   "height": 0,                # m, how far the rocket has ascended
@@ -24,7 +24,8 @@ state_list = []                      # will be used to store a "snapshot" of the
                                      # at each interval "dt"
 
 step_count = 0                                      # tracks total number of step() calls
-steps_per_second = round(c.PRINT_INTERVAL / c.DT)   # e.g. 100 when dt = 0.01
+print_interval = 0.1
+steps_per_second = round(print_interval / c.DT)   # e.g. 100 when dt = 0.01
 
 # Functions
 def massCalculation(mass):                    # Decreases mass due to propellant being expelled

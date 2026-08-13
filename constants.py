@@ -5,7 +5,6 @@ import math
 PI = math.pi          # dimensionless
 GRAVITY = -9.81       # m/s^2
 DT = 0.01             # s, 100 checks per second (100 Hz)
-PRINT_INTERVAL = 0.5  # Determines how often a print out occurs
 AIR_DENSITY = 1.225   # kg/m^3, standard sea-level air density
 DELTA = 5             # degrees, angle of the nozzle with respect to the rocket's axis
 
