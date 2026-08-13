@@ -8,6 +8,7 @@ Phase 3: PID Implementation
 import math
 
 import constants as c
+import controller as co
 import physics_plant as ph
 
 rocket_state = ph.rocket_state
@@ -15,6 +16,7 @@ state_list = ph.state_list
 step = ph.step
 print_interval = ph.print_interval
 steps_per_second = ph.steps_per_second
+delta = co.PID_controller(rocket_state["pitch"], rocket_state["angular_velocity"])
 
 def print_out():                                    # Prints out a line displaying relevant translational and rotational values
   height = rocket_state["height"]
@@ -37,7 +39,7 @@ def print_out():                                    # Prints out a line displayi
 
 print("------------------------------------------- POWERED FLIGHT (BURN PHASE) -------------------------------------------\n")
 
-step(rocket_state)                        # Runs a quick step in order to make the rocket's height non-zero
+step(rocket_state, delta)                        # Runs a quick step in order to make the rocket's height non-zero
                                           # Since the condition below runs whilst the rocket is airborne
 
 while rocket_state["height"] >= 0:        # Keeps incrementing time until the rocket reaches the ground
@@ -46,7 +48,8 @@ while rocket_state["height"] >= 0:        # Keeps incrementing time until the ro
     print_interval = 0.5
     steps_per_second = round(print_interval / c.DT)
 
-  step(rocket_state)
+  delta = co.PID_controller(rocket_state["pitch"], rocket_state["angular_velocity"])
+  step(rocket_state, delta)
 
   if ph.step_count % steps_per_second == 0:
     print_out()

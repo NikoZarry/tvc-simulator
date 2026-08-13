@@ -14,7 +14,7 @@ rocket_state = {              # rocket's starting parameters
   "velocity": 0,              # m/s, how quickly the rocket is ascending
   "acceleration": 0,          # m/s^2, how quickly the rocket's velocity is changing
   "sim_time": 0,              # s, total elapsed time from start of rocket's ascent
-  "pitch": 0,                 # radians, how far the rocket's body axis has rotated off the vertical. Positive = left rotation, Negative = right rotation
+  "pitch": math.radians(7),   # radians, how far the rocket's body axis has rotated off the vertical. Positive = left rotation, Negative = right rotation
   "angular_velocity": 0,      # radians/s, how fast a rocket's body axis is rotating off the vertical
   "angular_acceleration": 0,  # radians/s^2, how fast a rocket's angular velocity is changing
 
@@ -38,16 +38,16 @@ def dragCalculation(velocity):    # Calculates air drag acting on the rocket
   else:                # If the rocket is falling downward, drag is pushing up
     return drag
 
-def forceCalculation(mass, drag, time):                # Calculates net forces affecting the rocket
+def forceCalculation(mass, drag, delta, time):                # Calculates net forces affecting the rocket
   if time <= c.BURN_TIME:
-    translational_thrust = c.AVG_THRUST * math.cos(math.radians(c.DELTA))   # Thrust applied to moving the rocket upward
+    translational_thrust = c.AVG_THRUST * math.cos(delta)                        # Thrust applied to moving the rocket upward
     return translational_thrust + (mass * c.GRAVITY) + drag                 # Whilst there's propellant to burn, force is equal to
   else:                                                                     # Thrust + (Force due to gravity)
     return (mass * c.GRAVITY) + drag                                        # When propellant is out, only forces acting are gravity and drag
 
-def torqueCalculation(time):                               # Calculates net torque acting on the rocket's center of mass
+def torqueCalculation(delta, time):                               # Calculates net torque acting on the rocket's center of mass
   if time <= c.BURN_TIME:
-    return c.AVG_THRUST * c.LEG_DISTANCE * math.sin(math.radians(c.DELTA))    # torque = Tdsin(delta)
+    return c.AVG_THRUST * c.LEG_DISTANCE * math.sin(delta)      # torque = Tdsin(delta)
   else:
     return 0                                               # If burnout has passed, return zero torque
 
@@ -69,7 +69,7 @@ def heightCalculation(height, velocity, acceleration):                   # Calcu
 def pitchCalculation(pitch, angular_velocity, angular_acceleration):                    # Calculates pitch angle due to angular velocity
   return pitch + angular_velocity * c.DT + (1/2) * angular_acceleration * (c.DT ** 2)   # pitch = omega*dt + (1/2)*alpha*dt^2
 
-def step(state):                        # "step" function that runs every time step (0.01 s)
+def step(state, delta):                        # "step" function that runs every time step (0.01 s)
 
   # Declaring variables
   height = state["height"]              # Retrieves starting translational and rotational values from the rocket's state dictionary
@@ -84,8 +84,8 @@ def step(state):                        # "step" function that runs every time s
     mass = state["mass"]
 
   air_drag = dragCalculation(velocity)
-  net_force = forceCalculation(mass, air_drag, time)
-  net_torque = torqueCalculation(time)
+  net_force = forceCalculation(mass, air_drag, delta, time)
+  net_torque = torqueCalculation(delta, time)
   net_acceleration = accelCalculation(mass, net_force)
   net_angular_acceleration = angAccelCalculation(net_torque)
   final_velocity = velCalculation(velocity, net_acceleration)
