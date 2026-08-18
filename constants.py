@@ -1,3 +1,8 @@
+"""
+Phase 3: PID Implementation
+- add PID implementation constants
+"""
+
 # Imports
 import math
 
@@ -6,10 +11,14 @@ PI = math.pi                           # unitless
 GRAVITY = -9.81                        # m/s^2
 DT = 0.01                              # s, 100 checks per second (100 Hz)
 AIR_DENSITY = 1.225                    # kg/m^3, standard sea-level air density
-KP = 1                               # unitless, 
-KI = 0.04                                # 1/s (Hz), 
-KD = 0.1                               # s, 
-MAX_GIMBAL_ANGLE = math.radians(7)
+KP = 1.1                               # unitless, scales the P (proportional) term's contribution to delta
+KI = 0.1                               # 1/s (Hz), scales the I (integral) term's contribution to delta
+KD = 0.1                               # s, scales the D (derivative) term's contribution to delta
+MAX_GIMBAL_ANGLE = math.radians(7)     # radians, how far left/right the gimbaled nozzle can rotate
+STARTING_PITCH = math.radians(0)       # radians, the rocket's starting pitch
+GUST_TIME = 0.75                       # s, the time during the rocket's flight where a gust of wind occurs
+GUST_DURATION = 0.25                   # s, how long the gust of wind lasts, starting from the GUST_TIME
+GUST_TORQUE = 20                       # N*m, the amount the wind causes the rocket to rotate
 
 # Thrust Curve constants (AeroTech J350W)
 PROP_MASS = 0.375        # kg, mass of the propellant

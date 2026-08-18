@@ -1,4 +1,3 @@
-
 """
 Phase 3: PID Implementation
 - transfer physics loop from 'physics.py' onto main
@@ -18,7 +17,8 @@ print_interval = ph.print_interval
 steps_per_second = ph.steps_per_second
 delta = co.PID_controller(rocket_state["pitch"], rocket_state["angular_velocity"])
 
-def print_out():                                    # Prints out a line displaying relevant translational and rotational values
+# Functions
+def print_out():       # Prints out a line displaying relevant translational and rotational values
   height = rocket_state["height"]
   pitch = math.degrees(rocket_state["pitch"])
   velocity = rocket_state["velocity"]
@@ -33,35 +33,11 @@ def print_out():                                    # Prints out a line displayi
   print(f"acceleration = {accel:>12.3f} m/s^2")
   print(end="\t\t\t")
   print(f"  pitch = {pitch:>10.3f}°", end="  |  ")
-  print(f"ang velocity = {angular_vel:>3.3f} °/s", end="  |  ")
+  print(f"ang velocity = {angular_vel:>8.3f} °/s", end="  |  ")
   print(f"ang acceleration = {angular_accel:>8.3f} °/s^2")
   print()
 
-print("------------------------------------------- POWERED FLIGHT (BURN PHASE) -------------------------------------------\n")
 
-step(rocket_state, delta)                        # Runs a quick step in order to make the rocket's height non-zero
-                                          # Since the condition below runs whilst the rocket is airborne
-
-while rocket_state["height"] >= 0:        # Keeps incrementing time until the rocket reaches the ground
-
-  if rocket_state["sim_time"] >= c.BURN_TIME:
-    print_interval = 0.5
-    steps_per_second = round(print_interval / c.DT)
-
-  delta = co.PID_controller(rocket_state["pitch"], rocket_state["angular_velocity"])
-  step(rocket_state, delta)
-
-  if ph.step_count % steps_per_second == 0:
-    print_out()
-
-  if round(rocket_state["sim_time"], 2) == c.BURN_TIME:
-    print("------------------------------------- BURN OUT (PROPELLANT HAS BEEN DEPLETED) -------------------------------------\n")
-
-  if state_list[-2]["velocity"] > 0 and state_list[-1]["velocity"] < 0:
-    print("---------------------------------------------- DESCENT (VELOCITY < 0) ----------------------------------------------\n")
-
-
-# Interpolated final state
 def interpolation(x0, x1, alpha):              # Blends between two values using alpha as the fraction between them
   return x0 + alpha * (x1 - x0)                # x = x0 + alpha * (x1 - x0), general linear interpolation
 
@@ -99,28 +75,88 @@ def final_state():                                                              
   print(f"acceleration = {rocket_state["acceleration"]:>12.3f} m/s^2")
   print(end="\t\t\t")
   print(f"  pitch = {math.degrees(rocket_state["pitch"]):>10.3f}°", end="  |  ")
-  print(f"ang velocity = {math.degrees(rocket_state["angular_velocity"]):>3.3f} °/s", end="  |  ")
+  print(f"ang velocity = {math.degrees(rocket_state["angular_velocity"]):>8.3f} °/s", end="  |  ")
   print(f"ang acceleration = {math.degrees(rocket_state["angular_acceleration"]):>8.3f} °/s^2")
   print("--------------------------------------------------------------------------------------------------------------------")
 
 
+# Code Body
+print("----------------------------------------------- STARTING PARAMETERS -----------------------------------------------\n")
+print("Simulation Parameters:")
+print(f"dt: {c.DT} s", end="   ")
+print(f"Wind Gust Torque: {c.GUST_TORQUE:.2f} N*m, during time interval: ({c.GUST_TIME:.2f}, {c.GUST_TIME+c.GUST_DURATION:.2f}) s")
+print("\nDimensions:")
+print(f"Mass: {c.INITIAL_MASS:.2f} kg", end="   ")
+print(f"Length: {c.LENGTH:.2f} m", end="   ")
+print(f"Body Diameter: {c.DIAMETER * 1000:.2f} mm")
+print("\nRocket Parameters:")
+print(f"Propellant Mass: {c.PROP_MASS} kg", end="   ")
+print(f"Burn Time: {c.BURN_TIME} s", end="   ")
+print(f"Average Thrust: {c.AVG_THRUST} N")
+print("\nPID Parameters:")
+print(f"Proportional Gain: {c.KP:.2f}", end="   ")
+print(f"Integral Gain: {c.KI:.2f} Hz", end="   ")
+print(f"Derivative Gain: {c.KD:.2f} s", end="   ")
+print(f"Max Gimbal Angle: ±{math.degrees(c.MAX_GIMBAL_ANGLE):.2f}° (+ points left, - points right)")
+print("\nInitial Rocket State:")
+print_out()
+print("------------------------------------------- POWERED FLIGHT (BURN PHASE) -------------------------------------------\n")
+
+
+step(rocket_state, delta)                 # Runs a quick step in order to make the rocket's height non-zero
+                                          # Since the condition below runs whilst the rocket is airborne
+
+while rocket_state["height"] >= 0:        # Keeps incrementing time until the rocket reaches the ground
+
+  # Print less frequently once coasting starts (no more active correction, dynamics are slow),
+  # versus the fast, actively-controlled burn phase where finer resolution actually matters.
+  if rocket_state["sim_time"] >= c.BURN_TIME:
+    print_interval = 0.5
+    steps_per_second = round(print_interval / c.DT)
+
+  delta = co.PID_controller(rocket_state["pitch"], rocket_state["angular_velocity"])
+
+  # Apply the scripted wind gust torque only while sim_time falls inside its window.
+  # Print the phase marker exactly once, right at the tick where the window opens or closes, not on every tick inside it.
+  if round(rocket_state["sim_time"], 2) >= c.GUST_TIME and round(rocket_state["sim_time"], 2) <= c.GUST_TIME + c.GUST_DURATION:
+    if round(rocket_state["sim_time"], 2) == c.GUST_TIME:
+      print("--------------------------------------------- WIND GUST (ADDED TORQUE) ---------------------------------------------\n")
+    step(rocket_state, delta, c.GUST_TORQUE)
+    if round(rocket_state["sim_time"], 2) == c.GUST_TIME + c.GUST_DURATION:
+      print("-------------------------------------- WIND GUST OVER (NO MORE ADDED TORQUE) --------------------------------------\n")
+  else: 
+    step(rocket_state, delta)
+
+  if ph.step_count % steps_per_second == 0:
+    print_out()
+
+  if round(rocket_state["sim_time"], 2) == c.BURN_TIME:
+    print("------------------------------------- BURN OUT (PROPELLANT HAS BEEN DEPLETED) -------------------------------------\n")
+
+  if state_list[-2]["velocity"] > 0 and state_list[-1]["velocity"] < 0:
+    print("---------------------------------------------- DESCENT (VELOCITY < 0) ----------------------------------------------\n")
+
+
 apogee_state = max(state_list, key = lambda entry: entry["height"])                             # Rocket state where max height was achieved
-maxp_state = max(state_list, key = lambda entry: entry["pitch"])                                # Rocket state where max pitch was achieved
+maxp_state = max(state_list, key = lambda entry: abs(entry["pitch"]))                           # Rocket state where max pitch was achieved
+maxd_state = max(co.delta_list, key = lambda entry: abs(entry))                                 # Delta value with the largest magnitude, either direction
 maxv_state = max(state_list, key = lambda entry: entry["velocity"])                             # Rocket state where max velocity was achieved
 maxav_state = max(state_list, key = lambda entry: entry["angular_velocity"])                    # Rocket state where max angular velocity was achieved
 maxa_state = max(state_list, key = lambda entry: abs(entry["acceleration"]))                    # Rocket state where max acceleration was achieved
-maxaa_state = max(state_list, key = lambda entry: entry["angular_acceleration"])                # Rocket state where max angular acceleration was achieved
+maxaa_state = max(state_list, key = lambda entry: abs(entry["angular_acceleration"]))           # Rocket state where max angular acceleration was achieved
 burnout_list = [entry for entry in state_list if round(entry["sim_time"], 2) == c.BURN_TIME]    # A list of rocket states where elapsed time is = burnout time (just one state)
 burnout_state = burnout_list[0]                                                                 # Rocket state where the propellant was completely depleted
 
 final_state()       # Runs the interpolation, replaces rocket_state's overshot values with the true landing state
 
 # PRINT OUT
-print("\n\n\n---------------------------- FINAL PRINT OUT ----------------------------")
-print(f"Apogee Height: {apogee_state["height"]:.3f} m, reached at {apogee_state["sim_time"]:.2f} s")
-print(f"\nMax Velocity: {maxv_state["velocity"]:.3f} m/s, reached at {maxv_state["sim_time"]:.2f} s")
+print("\n\n\n---------------------------- FINAL PRINT OUT ----------------------------\n")
+print(f"Rocket's Final Mass: {rocket_state["mass"]:.2f} kg")
+print(f"\nApogee Height: {apogee_state["height"]:.3f} m, reached at {apogee_state["sim_time"]:.2f} s")
+print(f"\nMax Ascent Velocity: {maxv_state["velocity"]:.3f} m/s, reached at {maxv_state["sim_time"]:.2f} s")
 print(f"\nMax Acceleration: {maxa_state["acceleration"]:.3f} m/s^2, reached at {maxa_state["sim_time"]:.2f} s")
 print(f"\nMax Pitch: {math.degrees(maxp_state["pitch"]):.3f}°, reached at {maxp_state["sim_time"]:.2f} s")
+print(f"\nMax Delta: {math.degrees(maxd_state):.3f}°")
 print(f"\nMax Angular Velocity: {math.degrees(maxav_state["angular_velocity"]):.3f} °/s, reached at {maxav_state["sim_time"]:.2f} s")
 print(f"\nMax Angular Acceleration: {math.degrees(maxaa_state["angular_acceleration"]):.3f} °/s^2, reached at {maxaa_state["sim_time"]:.2f} s")
-print(f"\nBurnout Height: {burnout_state["height"]:.3f} m, Burnout Velocity: {burnout_state["velocity"]:.3f} m/s, reached at {burnout_state["sim_time"]:.2f} s")
+print(f"\nBurnout Height: {burnout_state["height"]:.3f} m, Burnout Velocity: {burnout_state["velocity"]:.3f} m/s, reached at {burnout_state["sim_time"]:.2f} s\n")
