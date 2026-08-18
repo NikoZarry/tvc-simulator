@@ -62,11 +62,11 @@ def velCalculation(velocity, acceleration):          # Calculates velocity due t
 def angVelCalculation(ang_velocity, ang_acceleration):   # Calculates angular velocity due to angular acceleration
   return ang_velocity + (ang_acceleration * c.DT)        # final_angvel = angvel + (angaccel * dt)
 
-def heightCalculation(height, velocity, acceleration):                   # Calculates height due to velocity
-  return height + velocity * c.DT + (1/2) * acceleration * (c.DT ** 2)   # h = v*dt + (1/2)*a*dt^2
+def heightCalculation(height, velocity):                   # Calculates height due to velocity
+  return height + velocity * c.DT                          # h = v_new*dt 
 
-def pitchCalculation(pitch, angular_velocity, angular_acceleration):                    # Calculates pitch angle due to angular velocity
-  return pitch + angular_velocity * c.DT + (1/2) * angular_acceleration * (c.DT ** 2)   # pitch = omega*dt + (1/2)*alpha*dt^2
+def pitchCalculation(pitch, angular_velocity):                    # Calculates pitch angle due to angular velocity
+  return pitch + angular_velocity * c.DT                          # pitch = omega_new*dt 
 
 def step(state, delta, wind_gust=0):                        # "step" function that runs every time step (0.01 s)
 
@@ -89,8 +89,8 @@ def step(state, delta, wind_gust=0):                        # "step" function th
   net_angular_acceleration = angAccelCalculation(net_torque)
   final_velocity = velCalculation(velocity, net_acceleration)
   final_angular_velocity = angVelCalculation(angular_velocity, net_angular_acceleration)
-  final_height = heightCalculation(height, final_velocity, net_acceleration)
-  final_pitch = pitchCalculation(pitch, final_angular_velocity, net_angular_acceleration)
+  final_height = heightCalculation(height, final_velocity)
+  final_pitch = pitchCalculation(pitch, final_angular_velocity)
 
   state["height"] = final_height                    # Updates rocket's state dictionary
   state["pitch"] = final_pitch
