@@ -7,7 +7,7 @@
 ## Quickstart
 
 ```bash
-git clone https://github.com/NikoZarry/tvc-simulator
+git clone https://github.com/hidekelirizarry/tvc-simulator
 cd tvc-simulator
 python main.py
 ```
