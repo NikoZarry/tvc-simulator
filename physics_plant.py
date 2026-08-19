@@ -28,7 +28,7 @@ steps_per_second = round(print_interval / c.DT)   # e.g. 100 when dt = 0.01
 
 # Functions
 def massCalculation(mass):                    # Decreases mass due to propellant being expelled
-    return mass - (c.BURN_RATE * c.DT)        # mass - (rate propellant gets expelled per increment time)
+  return mass - (c.BURN_RATE * c.DT)          # mass - (rate propellant gets expelled per increment time)
 
 def dragCalculation(velocity):    # Calculates air drag acting on the rocket
   drag = 0.5 * c.AIR_DENSITY * (velocity ** 2) * c.DRAG_COEFFICIENT * c.CROSS_SECTION_AREA
