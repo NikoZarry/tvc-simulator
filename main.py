@@ -1,14 +1,16 @@
 """
 Phase 4: Telemetry logs, static charts, live animations
-- export state_list onto a CSV file in order to be used for data analysis
+- call to a function in 'visualizer_static' in order to create telemetric plots
 """
 
 # Imports
+import csv
 import math
 
 import constants as c
 import controller as co
 import physics_plant as ph
+import visualizer_static as vs
 
 rocket_state = ph.rocket_state
 state_list = ph.state_list
@@ -167,3 +169,11 @@ print(f"\nMax Delta: {math.degrees(maxd_state["delta"]):.3f}°, reached at {maxd
 print(f"\nMax Angular Velocity: {math.degrees(maxav_state["angular_velocity"]):.3f} °/s, reached at {maxav_state["sim_time"]:.2f} s")
 print(f"\nMax Angular Acceleration: {math.degrees(maxaa_state["angular_acceleration"]):.3f} °/s^2, reached at {maxaa_state["sim_time"]:.2f} s")
 print(f"\nBurnout Height: {burnout_state["height"]:.3f} m, Burnout Velocity: {burnout_state["velocity"]:.3f} m/s, reached at {burnout_state["sim_time"]:.2f} s\n")
+
+# Exporting data onto CSV for data analysis
+with open("state_values.csv", "w", newline="") as f:                      # opens a .csv file that contains all the values from the completed state_list
+  writer = csv.DictWriter(f, fieldnames=[key for key in rocket_state])    
+  writer.writeheader()  
+  writer.writerows(state_list)                                            # takes the rows from the state_list
+
+vs.static_plotter(burnout_state["sim_time"])                              # plots a static chart, using the data obtained from the rocket's flight
