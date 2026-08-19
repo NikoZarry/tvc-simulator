@@ -1,6 +1,6 @@
 """
-Phase 3: PID Implementation
-- transfer physics loop from 'physics.py' onto main
+Phase 4: Telemetry logs, static charts, live animations
+- export state_list onto a CSV file in order to be used for data analysis
 """
 
 # Imports
@@ -67,6 +67,9 @@ def final_state():                                                              
 
   final_angAccel = interpolation(state0["angular_acceleration"], state1["angular_acceleration"], alpha)  # Interpolated angular accel at the true moment of landing
   rocket_state["angular_acceleration"] = final_angAccel
+
+  final_delta = interpolation(state0["delta"], state1["delta"], alpha)              # Interpolated delta at the true moment of landing
+  rocket_state["delta"] = final_delta
 
   print("----------------------------------------------- LANDING (HEIGHT = 0) -----------------------------------------------")
   print(f"time elapsed = {rocket_state["sim_time"]:>4.1f} s", end="  |  ")
@@ -137,9 +140,12 @@ while rocket_state["height"] >= 0:        # Keeps incrementing time until the ro
     print("---------------------------------------------- DESCENT (VELOCITY < 0) ----------------------------------------------\n")
 
 
+for i, delta_val in zip(range(len(state_list)), co.delta_list):       # goes through each dictionary in state_list, and
+  state_list[i]["delta"] = delta_val                                  # adds a key 'delta' and puts the respective delta value at that moment
+
 apogee_state = max(state_list, key = lambda entry: entry["height"])                             # Rocket state where max height was achieved
 maxp_state = max(state_list, key = lambda entry: abs(entry["pitch"]))                           # Rocket state where max pitch was achieved
-maxd_state = max(co.delta_list, key = lambda entry: abs(entry))                                 # Delta value with the largest magnitude, either direction
+maxd_state = max(state_list, key = lambda entry: abs(entry["delta"]))                           # Delta value with the largest magnitude, either direction
 maxv_state = max(state_list, key = lambda entry: entry["velocity"])                             # Rocket state where max velocity was achieved
 maxav_state = max(state_list, key = lambda entry: entry["angular_velocity"])                    # Rocket state where max angular velocity was achieved
 maxa_state = max(state_list, key = lambda entry: abs(entry["acceleration"]))                    # Rocket state where max acceleration was achieved
@@ -147,7 +153,8 @@ maxaa_state = max(state_list, key = lambda entry: abs(entry["angular_acceleratio
 burnout_list = [entry for entry in state_list if round(entry["sim_time"], 2) == c.BURN_TIME]    # A list of rocket states where elapsed time is = burnout time (just one state)
 burnout_state = burnout_list[0]                                                                 # Rocket state where the propellant was completely depleted
 
-final_state()       # Runs the interpolation, replaces rocket_state's overshot values with the true landing state
+final_state()                           # Runs the interpolation, replaces rocket_state's overshot values with the true landing state
+state_list[-1] = rocket_state.copy()    # Replaces state_list's last dictionary with the final interpolated rocket state
 
 # PRINT OUT
 print("\n\n\n---------------------------- FINAL PRINT OUT ----------------------------\n")
@@ -156,7 +163,7 @@ print(f"\nApogee Height: {apogee_state["height"]:.3f} m, reached at {apogee_stat
 print(f"\nMax Ascent Velocity: {maxv_state["velocity"]:.3f} m/s, reached at {maxv_state["sim_time"]:.2f} s")
 print(f"\nMax Acceleration: {maxa_state["acceleration"]:.3f} m/s^2, reached at {maxa_state["sim_time"]:.2f} s")
 print(f"\nMax Pitch: {math.degrees(maxp_state["pitch"]):.3f}°, reached at {maxp_state["sim_time"]:.2f} s")
-print(f"\nMax Delta: {math.degrees(maxd_state):.3f}°")
+print(f"\nMax Delta: {math.degrees(maxd_state["delta"]):.3f}°, reached at {maxd_state["sim_time"]:.2f} s")
 print(f"\nMax Angular Velocity: {math.degrees(maxav_state["angular_velocity"]):.3f} °/s, reached at {maxav_state["sim_time"]:.2f} s")
 print(f"\nMax Angular Acceleration: {math.degrees(maxaa_state["angular_acceleration"]):.3f} °/s^2, reached at {maxaa_state["sim_time"]:.2f} s")
 print(f"\nBurnout Height: {burnout_state["height"]:.3f} m, Burnout Velocity: {burnout_state["velocity"]:.3f} m/s, reached at {burnout_state["sim_time"]:.2f} s\n")
