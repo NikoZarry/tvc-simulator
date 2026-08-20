@@ -19,3 +19,6 @@ env/
 
 # Logs
 *.log
+
+# Simulation output
+state_values.csv
