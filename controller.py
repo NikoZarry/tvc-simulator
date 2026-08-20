@@ -1,6 +1,5 @@
 """
-Phase 3: PID Implementation
-- Implemement PID function for pitch stabalization
+Phase 4: Telemetry logs and static charts
 """
 
 # Imports

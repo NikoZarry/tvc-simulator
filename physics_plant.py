@@ -1,6 +1,5 @@
 """
-Phase 3: PID Implementation
-- transfer physics loop onto 'main.py'
+Phase 4: Telemetry logs and static charts
 """
 
 # Imports

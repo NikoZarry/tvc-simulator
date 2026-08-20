@@ -1,6 +1,5 @@
 """
-Phase 3: PID Implementation
-- add PID implementation constants
+Phase 4: Telemetry logs and static charts
 """
 
 # Imports

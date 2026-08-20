@@ -1,8 +1,8 @@
 # TVC Rocket Ascent Simulator
 
-2D Thrust Vector Control simulator, built from scratch in Python. A closed-loop PID controller now actively corrects pitch during the burn, gimbal deflection is no longer fixed.
+2D Thrust Vector Control simulator, built from scratch in Python. A closed-loop PID controller now actively corrects pitch during the burn
 
-**Status:** Phase 3 complete. Starting Phase 4 (telemetry logging, visualization).
+**Status:** Phase 4 (static telemetry) complete.
 
 ## Quickstart
 
@@ -42,12 +42,24 @@ Closed-loop pitch control replacing Phase 2's fixed-angle gimbal, plus disturban
 - Found a real limitation while stress-testing disturbance timing: a gust landing too close to burnout leaves the controller still mid-correction when thrust cuts off. With zero torque authority afterward, whatever angular velocity remains at that instant persists unchanged through the entire unpowered coast. Confirmed this is a control-authority-timing limit tied to the deferred passive aerodynamic stability model (see assumptions), not a flaw in the PID or TVC approach itself
 - Final flight summary extended with max gimbal deflection and corrected to preserve sign on negative extremes, previously only captured the largest positive value for pitch and angular acceleration
 
+## What's working (Phase 4)
+
+<p align="center">
+  <img src="telemetry_static.png" alt="Flight Telemetry" width="800">
+</p>
+
+Telemetry logging and a full static visualization pipeline, turning the console output into actual visual proof.
+
+- Flight state (`state_list`) exported to CSV after each run, one row per timestep, delta merged in alongside the physics state
+- `visualizer_static.py` reads the CSV back and produces a 5-panel telemetry figure: height, velocity, pitch, angular velocity, and gimbal deflection, all plotted against a shared time axis
+- Burnout and the wind gust window are marked directly on the figure, gust window label pulls its torque value live from `constants.py` so it stays accurate if the gust is retuned
+
 ## Roadmap
 
 - [x] Phase 1: Translational dynamics, drag, landing interpolation, flight summary
 - [x] Phase 2: Rotational mechanics, pitch, angular velocity, moment of inertia, gimbal torque
 - [x] Phase 3: PID controller with anti-windup, wind gust disturbance testing
-- [ ] Phase 4: Telemetry logging, static charts, live animation
+- [x] Phase 4: Telemetry logging, static charts
 
 ## Assumptions & Known Limitations
 
@@ -58,10 +70,21 @@ Closed-loop pitch control replacing Phase 2's fixed-angle gimbal, plus disturban
 - Wind gust disturbance is a simplified scripted torque with a fixed magnitude and time window, not a real aerodynamic model
 - No passive aerodynamic stability (fins) modeled yet; the vehicle has zero restoring torque once thrust cuts off, so any pitch or angular velocity error remaining at burnout carries unchanged through the rest of the flight. A real airframe's fins would naturally damp this out during the coast, this is the specific gap Phase 3 testing exposed
 
+## Future Directions (v2)
+
+Once this version is polished and up, planning a broader rebuild rather than continuing to bolt features onto the phase-based structure:
+
+- Selectable rocket/motor presets instead of one hardcoded configuration
+- Passive aerodynamic stability (fins), the gap this project's own Phase 3 testing exposed
+- Auto-tuning PID gains for whatever configuration is loaded, likely starting from a model-based estimate derived from the analytically-computed moment of inertia, rather than a blind search
+- Live-editable constants (an in-app control panel instead of hand-editing `constants.py`)
+- Real sprite-based animation, building on the rotation/timing logic already proven in `visualizer_live.py`
+
 ## Repo structure
 
 - `constants.py`, motor, physics, and PID/gust constants
 - `physics_plant.py`, the simulation engine
 - `controller.py`, PID controller with anti-windup
-- `main.py`, driver script: simulation loop, wind gust scripting, startup and summary printouts
-- `visualizer_static.py` / `visualizer_live.py`, plotting and animation (Phase 4, not started)
+- `main.py`, driver script: simulation loop, wind gust scripting, startup and summary printouts, CSV export
+- `visualizer_static.py`, static telemetry plotting (Phase 4)
+- `visualizer_live.py`, live animation prototype, rotation/timing mechanics proven, parked pending real sprite assets (v2)
