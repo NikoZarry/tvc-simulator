@@ -6,12 +6,12 @@
 
 ## Quickstart
 
-Requires Python 3.10+ and pip.
+Requires Python 3.10+.
 
 ```bash
 git clone https://github.com/hidekelirizarry/tvc-simulator
 cd tvc-simulator
-pip install matplotlib
+pip install -r requirements.txt
 python main.py
 ```
 
