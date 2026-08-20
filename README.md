@@ -1,12 +1,12 @@
 # TVC Rocket Ascent Simulator
 
-2D Thrust Vector Control simulator, built from scratch in Python. A closed-loop PID controller now actively corrects pitch during the burn
+2D Thrust Vector Control simulator, built from scratch in Python. A closed-loop PID controller now actively corrects pitch during the burn.
 
 **Status:** Phase 4 (static telemetry) complete.
 
 ## Quickstart
 
-Requires Python 3.10+.
+Requires Python 3.12+.
 
 ```bash
 git clone https://github.com/hidekelirizarry/tvc-simulator
@@ -14,6 +14,8 @@ cd tvc-simulator
 pip install -r requirements.txt
 python main.py
 ```
+
+Running `main.py` prints a full flight summary to the console and writes two files to the working directory: `state_values.csv` (raw telemetry, one row per timestep) and `telemetry_static.png` (the 5-panel flight visualization). Both are overwritten on every run.
 
 ## What's working (Phase 1)
 
@@ -56,6 +58,7 @@ Telemetry logging and a full static visualization pipeline, turning the console 
 - Flight state (`state_list`) exported to CSV after each run, one row per timestep, delta merged in alongside the physics state
 - `visualizer_static.py` reads the CSV back and produces a 5-panel telemetry figure: height, velocity, pitch, angular velocity, and gimbal deflection, all plotted against a shared time axis
 - Burnout and the wind gust window are marked directly on the figure, gust window label pulls its torque value live from `constants.py` so it stays accurate if the gust is retuned
+- Caught and fixed a units bug along the way: pitch, angular velocity, and delta are stored in radians in the CSV (matching the physics engine internally), and needed explicit conversion to degrees at plot time, the same radians-internally-degrees-at-display convention used everywhere else in this project
 
 ## Roadmap
 
@@ -81,7 +84,7 @@ Once this version is polished and up, planning a broader rebuild rather than con
 - Passive aerodynamic stability (fins), the gap this project's own Phase 3 testing exposed
 - Auto-tuning PID gains for whatever configuration is loaded, likely starting from a model-based estimate derived from the analytically-computed moment of inertia, rather than a blind search
 - Live-editable constants (an in-app control panel instead of hand-editing `constants.py`)
-- Real sprite-based animation, building on the rotation/timing logic already proven in `visualizer_live.py`
+- Real sprite-based animation of the rocket body and gimbaled nozzle during flight
 
 ## Repo structure
 
@@ -90,4 +93,3 @@ Once this version is polished and up, planning a broader rebuild rather than con
 - `controller.py`, PID controller with anti-windup
 - `main.py`, driver script: simulation loop, wind gust scripting, startup and summary printouts, CSV export
 - `visualizer_static.py`, static telemetry plotting (Phase 4)
-- `visualizer_live.py`, live animation prototype, rotation/timing mechanics proven, parked pending real sprite assets (v2)
