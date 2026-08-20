@@ -1,5 +1,5 @@
 """
-Phase 4: Telemetry logs, static charts, live animations
+Phase 4: Telemetry logs and static charts
 - call to a function in 'visualizer_static' in order to create telemetric plots
 """
 

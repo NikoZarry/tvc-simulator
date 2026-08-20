@@ -1,5 +1,5 @@
 """
-Phase 4: Telemetry logs, static charts, live animations
+Phase 4: Telemetry logs and static charts
 - create static plots of the data achieved from the rocket's flight
 """
 
